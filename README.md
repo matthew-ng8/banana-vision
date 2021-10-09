@@ -1,2 +1,2 @@
 # banana-vision
-Stonybrook ESE 344 Senior Design Project
+Stonybrook ESE 440 Senior Design Project
