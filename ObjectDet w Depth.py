@@ -181,11 +181,11 @@ try:
                 cv2.FONT_HERSHEY_COMPLEX,1,(0,255,0),2)
                 cv2.putText(img,str(round(confidence*100,2)),(box[0]+200,box[1]+30),
                 cv2.FONT_HERSHEY_COMPLEX,1,(0,255,0),2)
-                x = (int) (((box[2] -1) - (box[0]-1)) /2)
-                y = (int) (((box[3]-1) - (box[1]-1)) /2)
+                x = (int) (abs((box[2]-1) + (box[0]-1)) /2)
+                y = (int) (abs((box[3]-1) + (box[1]-1)) /2)
                 depth = depth_frame.get_distance(x,y)
-                print("Depth is :")
-                print( depth)
+                print("Depth is:", depth)
+                print("Object is: ", classNames[classId-1], "\n\n")
         
         # if test < 2:
         #     display9x9(depth_colormap_dim,color_image, depth_frame)
