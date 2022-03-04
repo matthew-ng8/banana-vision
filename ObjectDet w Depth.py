@@ -7,6 +7,7 @@
 
 import pyrealsense2 as rs
 import numpy as np
+import skimage.measure
 import cv2
 
 '''
@@ -98,100 +99,224 @@ def display9x9(depth_colormap_dim, color_image, depth_frame):
             print("%3.3f " % zImage[i][j][0], end = "")
         print("\n")
 
-# Configure depth and color streams
-pipeline = rs.pipeline()
-config = rs.config()
-align_to = rs.stream.color
-align = rs.align(align_to)
-test = 0
-# Get device product line for setting a supporting resolution
-pipeline_wrapper = rs.pipeline_wrapper(pipeline)
-pipeline_profile = config.resolve(pipeline_wrapper)
-device = pipeline_profile.get_device()
-device_product_line = str(device.get_info(rs.camera_info.product_line))
 
-found_rgb = False
-for s in device.sensors:
-    if s.get_info(rs.camera_info.name) == 'RGB Camera':
-        found_rgb = True
-        break
-if not found_rgb:
-    print("The demo requires Depth camera with Color sensor")
-    exit(0)
+def getQuadrant6(x,y) :
+    #determine x coordinate quadrant
+    if(x <= 213 and x >= 0) :
+        x_dir = "left"
+    elif(x > 213 and x <= 426) :
+        x_dir = "middle"
+    elif(x > 426 and x <= 640) :
+        x_dir = "right"
 
-config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
+    #determing y coordinate quadrant
+    if(y <= 240 and y >= 0) :
+        y_dir = "top"
+    elif(x > 240 and x <= 480) :
+        y_dir = "bottom"
 
-if device_product_line == 'L500':
-    config.enable_stream(rs.stream.color, 960, 540, rs.format.bgr8, 30)
-else:
-    config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+    return x_dir, y_dir
 
-# Start streaming
-pipeline.start(config)
-thres = 0.55 # Threshold to detect object
-classNames= []
-classFile = 'coco.names'
-with open(classFile,'rt') as f:
-    classNames = f.read().rstrip('\n').split('\n')
- 
-configPath = 'ssd_mobilenet_v3_large_coco_2020_01_14.pbtxt'
-weightsPath = 'frozen_inference_graph.pb'
- 
-net = cv2.dnn_DetectionModel(weightsPath,configPath)
-net.setInputSize(320,320)
-net.setInputScale(1.0/ 127.5)
-net.setInputMean((127.5, 127.5, 127.5))
-net.setInputSwapRB(True)
-try:
-    while True:
+def getQuadrant4(x,y) :
+    #determine x coordinate quadrant
+    if(x <= 320 and x >= 0) :
+        x_dir = "left"
+    elif(x > 320 and x <= 640) :
+        x_dir = "right"
 
-        # Wait for a coherent pair of frames: depth and color
-        frames = pipeline.wait_for_frames()
-        depth_frame = frames.get_depth_frame()
-        aligned_frames = align.process(frames)
-        depth_frame = aligned_frames.get_depth_frame()
-        color_frame = aligned_frames.get_color_frame()
-        if not depth_frame or not color_frame:
-            continue
+    #determing y coordinate quadrant
+    if(y <= 240 and y >= 0) :
+        y_dir = "top"
+    elif(x > 240 and x <= 480) :
+        y_dir = "bottom"
 
-        # Convert images to numpy arrays
-        depth_image = np.asanyarray(depth_frame.get_data())
-        color_image = np.asanyarray(color_frame.get_data())
+    return x_dir, y_dir
 
-        # Apply colormap on depth image (image must be converted to 8-bit per pixel first)
-        depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
-        
+def getQuadrant3(x) :
+    #determine x coordinate quadrant
+    if(x <= 213 and x >= 0) :
+        x_dir = "left"
+    elif(x > 213 and x <= 426) :
+        x_dir = "middle"
+    elif(x > 426 and x <= 640) :
+        x_dir = "right"
 
-        depth_colormap_dim = depth_colormap.shape
-        color_colormap_dim = color_image.shape
+    return x_dir
 
-        
-        # Convert images to numpy arrays
-        depth_image = np.asanyarray(depth_frame.get_data())
-        color_image = np.asanyarray(color_frame.get_data())
+def testSurface(depth_frame) :
+    arraySurface = np.zeros(10)
+    for i in range (0,320):
+        for j in range (0, 480):
+            depth = depth_frame.get_distance(j,i)
+            if (depth >= 0 and depth <= 0.1):
+                arraySurface[0]+=1
+            if (depth >= 0.11 and depth <= 0.20):
+                arraySurface[1]+=1
+            if (depth >= 0.21 and depth <= 0.3):
+                arraySurface[2]+=1
+            if (depth >= 0.31 and depth <= 0.4):
+                arraySurface[3]+=1
+            if (depth >= 0.41 and depth <= 0.5):
+                arraySurface[4]+=1
+            if (depth >= 0.51 and depth <= 0.6):
+                arraySurface[5]+=1
+            if (depth >= 0.61 and depth <= 0.7):
+                arraySurface[6]+=1
+            if (depth >= 0.71 and depth <= 0.8):
+                arraySurface[7]+=1
+            if (depth >= 0.81 and depth <= 0.9):
+                arraySurface[8]+=1
+            if (depth >= 0.91 and depth <= 1):
+                arraySurface[9]+=1
+    leftSurface = 0
+    for i in range (0, 10):
+        if(arraySurface[i]>=38400):
+            leftSurface = 1
+            #there is a surface (left side wall) 
+            break
 
-        depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha = 0.03), cv2.COLORMAP_JET)
-        img = color_image
-        classIds, confs, bbox = net.detect(img,confThreshold=thres)
-        print(classIds,bbox)
-        if len(classIds) != 0:
-            for classId, confidence,box in zip(classIds.flatten(),confs.flatten(),bbox):
-                cv2.rectangle(img,box,color=(0,255,0),thickness=2)
-                cv2.putText(img,classNames[classId-1].upper(),(box[0]+10,box[1]+30),
-                cv2.FONT_HERSHEY_COMPLEX,1,(0,255,0),2)
-                cv2.putText(img,str(round(confidence*100,2)),(box[0]+200,box[1]+30),
-                cv2.FONT_HERSHEY_COMPLEX,1,(0,255,0),2)
-        # Show images
-        
-        if test < 2:
-            display9x9(depth_colormap_dim,color_image, depth_frame)
-            test = test + 1
-        images = np.hstack((color_image, depth_colormap))
-        cv2.namedWindow('RealSense', cv2.WINDOW_AUTOSIZE)
-        cv2.imshow('RealSense', images)
-        cv2.waitKey(1)
+    arraySurface = np.zeros(10)
+    for i in range (320,640):
+        for j in range (0, 480):
+            depth = depth_frame.get_distance(j,i)
+            if (depth >= 0 and depth <= 0.1):
+                arraySurface[0]+=1
+            if (depth >= 0.11 and depth <= 0.20):
+                arraySurface[1]+=1
+            if (depth >= 0.21 and depth <= 0.3):
+                arraySurface[2]+=1
+            if (depth >= 0.31 and depth <= 0.4):
+                arraySurface[3]+=1
+            if (depth >= 0.41 and depth <= 0.5):
+                arraySurface[4]+=1
+            if (depth >= 0.51 and depth <= 0.6):
+                arraySurface[5]+=1
+            if (depth >= 0.61 and depth <= 0.7):
+                arraySurface[6]+=1
+            if (depth >= 0.71 and depth <= 0.8):
+                arraySurface[7]+=1
+            if (depth >= 0.81 and depth <= 0.9):
+                arraySurface[8]+=1
+            if (depth >= 0.91 and depth <= 1):
+                arraySurface[9]+=1
+    
+    rightSurface = 0
+    for i in range (0, 10):
+        if(arraySurface[i]>=38400):
+            rightSurface = 1
+            #there is a surface (right side wall) 
+            break
+    centerSurface = 0
+    if(rightSurface and leftSurface):
+        centerSurface = 1
+        rightSurface = 0
+        leftSurface = 0
+        #there is a surface (centered in front) 
+    
+    #print statement for right/left/center surface
+    #if(rightSurface):
+        #TTS print right surface
+    #elif(leftSurface):
+        #TTS print left surface
+    #elif(centerSurface):
+        #TTS print center surface
 
-finally:
+def main():
+    # Configure depth and color streams
+    pipeline = rs.pipeline()
+    config = rs.config()
+    align_to = rs.stream.color
+    align = rs.align(align_to)
+    test = 0
+    # Get device product line for setting a supporting resolution
+    pipeline_wrapper = rs.pipeline_wrapper(pipeline)
+    pipeline_profile = config.resolve(pipeline_wrapper)
+    device = pipeline_profile.get_device()
+    device_product_line = str(device.get_info(rs.camera_info.product_line))
 
-    # Stop streaming
-    pipeline.stop()
+    found_rgb = False
+    for s in device.sensors:
+        if s.get_info(rs.camera_info.name) == 'RGB Camera':
+            found_rgb = True
+            break
+    if not found_rgb:
+        print("The demo requires Depth camera with Color sensor")
+        exit(0)
+
+    config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
+
+    if device_product_line == 'L500':
+        config.enable_stream(rs.stream.color, 960, 540, rs.format.bgr8, 30)
+    else:
+        config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+
+    # Start streaming
+    pipeline.start(config)
+    thres = 0.55 # Threshold to detect object
+    classNames= []
+    classFile = 'coco.names'
+    with open(classFile,'rt') as f:
+        classNames = f.read().rstrip('\n').split('\n')
+    
+    configPath = 'ssd_mobilenet_v3_large_coco_2020_01_14.pbtxt'
+    weightsPath = 'frozen_inference_graph.pb'
+    
+    net = cv2.dnn_DetectionModel(weightsPath,configPath)
+    net.setInputSize(320,320)
+    net.setInputScale(1.0/ 127.5)
+    net.setInputMean((127.5, 127.5, 127.5))
+    net.setInputSwapRB(True)
+    try:
+        while True:
+
+            # Wait for a coherent pair of frames: depth and color
+            frames = pipeline.wait_for_frames()
+            depth_frame = frames.get_depth_frame()
+            aligned_frames = align.process(frames)
+            depth_frame = aligned_frames.get_depth_frame()
+            color_frame = aligned_frames.get_color_frame()
+            if not depth_frame or not color_frame:
+                continue
+
+            # Convert images to numpy arrays
+            depth_image = np.asanyarray(depth_frame.get_data())
+            color_image = np.asanyarray(color_frame.get_data())
+
+            # Apply colormap on depth image (image must be converted to 8-bit per pixel first)
+            depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
+            
+
+            depth_colormap_dim = depth_colormap.shape
+            color_colormap_dim = color_image.shape
+
+            
+            # Convert images to numpy arrays
+            depth_image = np.asanyarray(depth_frame.get_data())
+            color_image = np.asanyarray(color_frame.get_data())
+
+            depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha = 0.03), cv2.COLORMAP_JET)
+            img = color_image
+            classIds, confs, bbox = net.detect(img,confThreshold=thres)
+            print(classIds,bbox)
+
+            if len(classIds) != 0:
+                for classId, confidence,box in zip(classIds.flatten(),confs.flatten(),bbox):
+                    cv2.rectangle(img,box,color=(0,255,0),thickness=2)
+                    cv2.putText(img,classNames[classId-1].upper(),(box[0]+10,box[1]+30),
+                    cv2.FONT_HERSHEY_COMPLEX,1,(0,255,0),2)
+                    cv2.putText(img,str(round(confidence*100,2)),(box[0]+200,box[1]+30),
+                    cv2.FONT_HERSHEY_COMPLEX,1,(0,255,0),2)
+            # Show images
+            
+            if test < 2:
+                display9x9(depth_colormap_dim,color_image, depth_frame)
+                test = test + 1
+            images = np.hstack((color_image, depth_colormap))
+            cv2.namedWindow('RealSense', cv2.WINDOW_AUTOSIZE)
+            cv2.imshow('RealSense', images)
+            cv2.waitKey(1)
+
+    finally:
+
+        # Stop streaming
+        pipeline.stop()
