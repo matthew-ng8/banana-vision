@@ -4,6 +4,9 @@ Property of Banana Vision
 Last edited 2/26/2022
 '''
 
+from time import struct_time
+
+
 class frame_data:
 	'''
 	center is passed in as a tuple of (x, y)
@@ -11,17 +14,20 @@ class frame_data:
 	maxFrames is the maximum amount of frames frame_data can hold onto
 	centerTolerance is the tolerance level to match the center value to the previous center
 	'''
-	def __init__(self, center, percentError, maxFrames, centerTolerance=2):
+	def __init__(self, center, percentError, maxFrames, centerTolerance=10):
 		self.frames=[]
 		self.center = center
 		self.percentError = percentError
 		self.maxFrames = maxFrames
 		self.centerTolerance = centerTolerance
 
+
 	def getCenter(self):
 		return self.center
 	def setCenter(self, newCenter):
 		self.center = newCenter
+	# def timeCheck(self):
+	# 	return lifeSpan <= (struct_time - self.creationTime)
 	'''
 	Compares the center tuple we have to the new center. 
 	returns true if simlar(with in threshold) false if not

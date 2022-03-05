@@ -9,10 +9,11 @@ from frame_data import frame_data
 
 
 #dictionary to hold objects
-d = {}
-
+objectDictionary = {}
+creationTime= time.time()
+lifeSpan = 30
 MAX_FRAMES = 5
-DEPTH_TOLERANCE = .15
+DEPTH_TOLERANCE = .20
 CENTER_TOLERANCE = 3
 
 # Configure depth and color streams
@@ -63,8 +64,8 @@ try:
     while True:
         time1 = time.time_ns()
         
-        if count%5 ==0:
-            print(time1)
+        # if count%5 ==0:
+        #     print(time1)
         count = count+1
         # Wait for a coherent pair of frames: depth and color
         frames = pipeline.wait_for_frames()
@@ -94,7 +95,7 @@ try:
         depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha = 0.03), cv2.COLORMAP_JET)
         img = color_image
         classIds, confs, bbox = net.detect(img,confThreshold=thres)
-        print(classIds,bbox)
+
         if len(classIds) != 0:
             for classId, confidence,box in zip(classIds.flatten(),confs.flatten(),bbox):
                 cv2.rectangle(img,box,color=(0,255,0),thickness=2)
@@ -105,14 +106,15 @@ try:
                 x = (int) ((box[2] + (box[0])) /2)
                 y = (int) ((box[3] + (box[1])) /2)
                 depth = depth_frame.get_distance(x,y)
-                print("Depth is:", depth)
-                print("Object is: ", classNames[classId-1], "\n\n")
-                if (d.get(classNames[classId-1]) == None):
-                    d.update({classNames[classId-1]: [] })
-                    dataList = d.get(classNames[classId-1])
+                if (lifeSpan <= (time.time() - creationTime)):
+                    objectDictionary.clear()
+                    creationTime = time.time()
+                if (objectDictionary.get(classNames[classId-1]) == None):
+                    objectDictionary.update({classNames[classId-1]: [] })
+                    dataList = objectDictionary.get(classNames[classId-1])
                     dataList.append(frame_data((x,y), DEPTH_TOLERANCE, MAX_FRAMES))
                 else:
-                    dataList = d.get(classNames[classId-1])
+                    dataList = objectDictionary.get(classNames[classId-1])
                     isAdded = False
                     for index in dataList:
                         if (index.similarCenter((x,y))):
