@@ -4,14 +4,14 @@ import cv2
 import pyrealsense2 as rs
 import numpy as np
 import time
-
+from quadrant import getQuadrant3
 from frame_data import frame_data
 
 
 #dictionary to hold objects
 objectDictionary = {}
 creationTime= time.time()
-lifeSpan = 30
+lifeSpan = 180
 MAX_FRAMES = 5
 DEPTH_TOLERANCE = .20
 CENTER_TOLERANCE = 3
@@ -103,8 +103,9 @@ try:
                 cv2.FONT_HERSHEY_COMPLEX,1,(0,255,0),2)
                 cv2.putText(img,str(round(confidence*100,2)),(box[0]+200,box[1]+30),
                 cv2.FONT_HERSHEY_COMPLEX,1,(0,255,0),2)
-                x = (int) ((box[2] + (box[0])) /2)
-                y = (int) ((box[3] + (box[1])) /2)
+                x = (int) ((box[2] + box[0] + (box[0])) /2)
+                y = (int) ((box[3] + box[1] + (box[1])) /2)
+                cv2.rectangle(img,(x-1, y-1, 2, 2 ),color=(0,255,0),thickness=2)
                 depth = depth_frame.get_distance(x,y)
                 if (lifeSpan <= (time.time() - creationTime)):
                     objectDictionary.clear()
@@ -119,8 +120,10 @@ try:
                     for index in dataList:
                         if (index.similarCenter((x,y))):
                             if (index.addFrame(depth)): #addFrame returns true if at max frames
-                                if (index.checkDepths()):
-                                    print(classNames[classId-1])    
+                                if (index.checkDepths() and index.withinDepth(3)):
+                                    xDir = getQuadrant3(x)
+                                    stringTTS = (classNames[classId-1] + " in the " + " " + xDir + "\nCenter Coordinates: (" + str(x) + "," + str(y) + ")")
+                                    print(stringTTS + " " + str(time1))
                                 dataList.remove(index)    
                             else:
                                 index.setCenter((x,y))
@@ -136,7 +139,9 @@ try:
         # if test < 2:
         #     display9x9(depth_colormap_dim,color_image, depth_frame)
         #     test = test + 1
+        
         images = np.hstack((color_image, depth_colormap))
+
         cv2.namedWindow('RealSense', cv2.WINDOW_AUTOSIZE)
         cv2.imshow('RealSense', images)
         cv2.waitKey(1)

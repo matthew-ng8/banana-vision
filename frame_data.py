@@ -76,5 +76,11 @@ class frame_data:
 			if depth >= tolerance+initialDepth or depth <= initialDepth-tolerance:
 				sameObject = False
 				break
-
+	
 		return sameObject
+	'''
+	Check if the depth is within depthMax in meters
+	'''
+	def withinDepth(self, depthMax):
+		initialDepth = self.frames[0]
+		return (initialDepth <= depthMax) 
