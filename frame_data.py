@@ -4,25 +4,30 @@ Property of Banana Vision
 Last edited 2/26/2022
 '''
 
+from time import struct_time
+
+
 class frame_data:
 	'''
 	center is passed in as a tuple of (x, y)
 	percentError is for checking the depths of frames within Tolerance level
 	maxFrames is the maximum amount of frames frame_data can hold onto
 	centerTolerance is the tolerance level to match the center value to the previous center
-
 	'''
-	def __init__(self, center, percentError, maxFrames, centerTolerance=2):
+	def __init__(self, center, percentError, maxFrames, centerTolerance=10):
 		self.frames=[]
 		self.center = center
 		self.percentError = percentError
 		self.maxFrames = maxFrames
 		self.centerTolerance = centerTolerance
 
+
 	def getCenter(self):
 		return self.center
 	def setCenter(self, newCenter):
 		self.center = newCenter
+	# def timeCheck(self):
+	# 	return lifeSpan <= (struct_time - self.creationTime)
 	'''
 	Compares the center tuple we have to the new center. 
 	returns true if simlar(with in threshold) false if not
@@ -71,28 +76,11 @@ class frame_data:
 			if depth >= tolerance+initialDepth or depth <= initialDepth-tolerance:
 				sameObject = False
 				break
-
+	
 		return sameObject
-
-
-
-'''
-some testing, not as robust as it should be
-'''
-def main():
-	print("hello world")
-	center = (4, 5)
-	fdata = frame_data(center, 0.15, 5)
-	print(str(fdata.getCenter()))
-	fdata.printFrames()
-
-	for x in range(0, 4):
-		fdata.addFrame(129 +x)
-		fdata.printFrames()
-	# newCenter = (4,8)
-	fdata.addFrame(129 +100)
-	# print(fdata.similarCenter(newCenter))
-	print(fdata.checkDepths())
-if(__name__ == '__main__'):
-	main()
-
+	'''
+	Check if the depth is within depthMax in meters
+	'''
+	def withinDepth(self, depthMax):
+		initialDepth = self.frames[0]
+		return (initialDepth <= depthMax) 
