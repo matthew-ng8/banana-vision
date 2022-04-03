@@ -1,9 +1,16 @@
+from tts import tts_msg
+import pyttsx3
+import time
+engine = pyttsx3.init() # object creation 
+
 from ast import List
 from pickle import NONE
 import cv2
 import pyrealsense2 as rs
 import numpy as np
-import time
+import threading
+
+
 from quadrant import getQuadrant3
 from frame_data import frame_data
 
@@ -46,7 +53,7 @@ else:
 
 # Start streaming
 pipeline.start(config)
-thres = 0.55 # Threshold to detect object
+thres = 0.7 # Threshold to detect object
 classNames= []
 classFile = 'coco.names'
 with open(classFile,'rt') as f:
@@ -122,8 +129,10 @@ try:
                             if (index.addFrame(depth)): #addFrame returns true if at max frames
                                 if (index.checkDepths() and index.withinDepth(3)):
                                     xDir = getQuadrant3(x)
-                                    stringTTS = (classNames[classId-1] + " in the " + " " + xDir + "\nCenter Coordinates: (" + str(x) + "," + str(y) + ")")
-                                    print(stringTTS + " " + str(time1))
+                                    stringTTS = (classNames[classId-1] + " in the " + " " + xDir)
+                                    #stringTTS = (classNames[classId-1] + " in the " + " " + xDir + "\nCenter Coordinates: (" + str(x) + "," + str(y) + ")")
+                                    print(stringTTS)
+                                    threading.Thread(tts_msg(stringTTS, 280, 7.0))
                                 dataList.remove(index)    
                             else:
                                 index.setCenter((x,y))
