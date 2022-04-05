@@ -10,8 +10,8 @@ import pyrealsense2 as rs
 import numpy as np
 import threading
 
-
-from quadrant import getQuadrant3
+from surface import testSurface
+from sections import getSection3
 from frame_data import frame_data
 
 
@@ -53,7 +53,9 @@ else:
 
 # Start streaming
 pipeline.start(config)
-thres = 0.7 # Threshold to detect object
+thres = 0.65
+
+ # Threshold to detect object
 classNames= []
 classFile = 'coco.names'
 with open(classFile,'rt') as f:
@@ -93,7 +95,6 @@ try:
 
         depth_colormap_dim = depth_colormap.shape
         color_colormap_dim = color_image.shape
-
         
         # Convert images to numpy arrays
         depth_image = np.asanyarray(depth_frame.get_data())
@@ -127,12 +128,12 @@ try:
                     for index in dataList:
                         if (index.similarCenter((x,y))):
                             if (index.addFrame(depth)): #addFrame returns true if at max frames
-                                if (index.checkDepths() and index.withinDepth(3)):
-                                    xDir = getQuadrant3(x)
+                                if (index.checkDepths() and index.withinDepth(2)):  #check depth and changed to 1
+                                    xDir = getSection3(x)
                                     stringTTS = (classNames[classId-1] + " in the " + " " + xDir)
                                     #stringTTS = (classNames[classId-1] + " in the " + " " + xDir + "\nCenter Coordinates: (" + str(x) + "," + str(y) + ")")
                                     print(stringTTS)
-                                    threading.Thread(tts_msg(stringTTS, 280, 7.0))
+                                    threading.Thread(tts_msg(stringTTS, 280, 100.0))
                                 dataList.remove(index)    
                             else:
                                 index.setCenter((x,y))
@@ -141,10 +142,11 @@ try:
                     if (not isAdded):
                         dataList.append(frame_data((x,y), DEPTH_TOLERANCE, MAX_FRAMES))
                             
+        else: 
+            surfacetext = testSurface(depth_frame)
+            if(surfacetext != "NONE") :
+                threading.Thread(tts_msg(surfacetext, 280, 100.0))
 
-                
-                
-        
         # if test < 2:
         #     display9x9(depth_colormap_dim,color_image, depth_frame)
         #     test = test + 1
