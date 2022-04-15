@@ -52,10 +52,10 @@ class frame_data:
 	returns true or false depending on if adding a new depth has put us at max frames
 	'''
 	def addFrame(self, depth):
-		if not self.hasMaxFrames():
-			self.frames.append(depth)
-		else:
-			print("Unable to add another frame as there are max frames")
+		# if not self.hasMaxFrames():
+		self.frames.append(depth)
+		# else:
+			# print("Unable to add another frame as there are max frames")
 			#should we throw an exception or smth here? 
 		return self.hasMaxFrames()
 	def printFrames(self):
