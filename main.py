@@ -128,7 +128,7 @@ if __name__ == '__main__':
                                         print(stringTTS)
                                         q.put(stringTTS)
                                         # threading.Thread(tts_msg(stringTTS, 280, 100.0))
-                                    dataList.remove(index)    
+                                    # dataList.remove(index)    
                                 else:
                                     index.setCenter((x,y))
                                     isAdded = True
